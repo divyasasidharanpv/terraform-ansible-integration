@@ -1,0 +1,25 @@
+---
+- name: integration of terraform and ansible
+  gather_facts: False
+  become_user: root
+  become: yes
+  hosts: all
+  
+  tasks:
+  
+    - name: installing apache
+      yum: 
+        name: httpd
+        state: latest
+      
+    - name: installing php
+      yum:
+         name: php
+         state: latest
+      
+    - name: starting httpd service
+      service:
+              name: httpd
+              state: started
+              enabled: yes
+      register: ec2
