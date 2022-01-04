@@ -1,0 +1,121 @@
+---
+- name: integration of terraform and ansible
+  gather_facts: False
+  become_user: root
+  become: yes
+  hosts: all
+
+  vars:
+   mariadb_root: database@123
+   username: wordpress
+   password: wordpress
+   database: wordpress
+  
+  tasks:
+  
+    - name: installing nginx
+      command: amazon-linux-extras install nginx1 -y
+      
+    - name: Installing epel repository
+      command: amazon-linux-extras install epel -y
+
+    - name: Installing latest php
+      command: amazon-linux-extras install php7.4 -y
+
+
+    - name: Installing pip
+      yum:
+        name: pip
+        state: present
+
+    - name: Installing PyMyQL
+      pip:
+        name: PyMySQL
+
+
+    - name: Installing remi repository
+      yum:
+        name: https://rpms.remirepo.net/enterprise/remi-release-7.rpm
+        state: present
+        
+    - name: enable repo
+      yum:
+        enablerepo: "epel,remi,remi-php74"
+        
+      
+    - name: starting nginx service
+      service:
+              name: nginx
+              state: started
+              enabled: yes
+
+    - name: Installing mariadb
+      yum:
+        name: mariadb-server
+        state: present
+
+    - name: Restarting/enabling mysql
+      service:
+        name: mariadb
+        state: restarted
+        enabled: true
+
+    - name: Downloading wordpress archive file
+      get_url:
+        url: https://wordpress.org/latest.tar.gz
+        dest: /tmp/wordpress.tar.gz
+
+    - name: Extracting wordpress
+      ansible.builtin.unarchive:
+        src: /tmp/wordpress.tar.gz
+        dest: /tmp/
+        remote_src: yes
+
+    - name: Copying contents to docroot
+      copy:
+        src: /tmp/wordpress/
+        dest: /usr/share/nginx/html/
+        remote_src: yes
+        owner: nginx
+        group: nginx
+
+    - name: mariadb setting root password
+      ignore_errors: yes
+      mysql_user:
+       login_user: root
+       login_password: ""
+       user: root
+       password: "{{ mariadb_root }}"
+       host_all: yes
+
+    - name: mariadb - removing anonymous users
+      mysql_user: 
+       login_user: root
+       login_password: "{{ mariadb_root }}"
+       user: ""
+       state: absent
+       host_all: yes
+
+    - name: Creating database
+      mysql_db:
+       login_user: root
+       login_password: "{{ mariadb_root }}"
+       name: "{{ database }}"
+    
+    - name: Creating a user
+      mysql_user:
+       login_user: root
+       login_password: "{{ mariadb_root }}"
+       name: "{{ username }}"
+       password: "{{ password }}"
+       priv: '{{ database }}.*:ALL'
+
+    - name: Wordpress - Creating wp-config.php
+      template:
+        src: wp_config_template
+        dest: /usr/share/nginx/html/wp-config.php
+        owner: nginx
+        group: nginx
+
+      
+      register: ec2
