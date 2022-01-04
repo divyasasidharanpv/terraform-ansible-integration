@@ -13,7 +13,7 @@ resource "aws_instance" "web-server-instance" {
   }
   
   provisioner "local-exec" {
-        command = "sleep 120; ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook -u ec2-user --private-key ./ohio.pem -i '${aws_instance.web-server-instance.public_ip},' instance3.yml"
+        command = "sleep 120; ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook -u ec2-user --private-key ./ohio.pem -i '${aws_instance.web-server-instance.public_ip},' instance4.yml"
   }
 }
 output "op1" {
